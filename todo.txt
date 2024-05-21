@@ -1,3 +1,15 @@
+-- To Do--
+Create a variable for each financial metric. 
+The user will pick the ASIN from a dropdown list and run it.
+    When the process is ran, the script will fetch all the values for LW financial metrics
+    and paste the values where its expected
+    The script will handle the creation of a new column
+
+    Add functionality to run all ASINs with one button
+
+
+Relative files paths need to be fetched from a dialog box OR the name needs to be dynamic.
+
 --Optimization--
 
 
