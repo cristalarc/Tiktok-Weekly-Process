@@ -142,13 +142,14 @@ FONT_SIZE = 11
 WHITE = "#fcf7f9"
 PLATFORM_FEE = 0.06   # Tiktok's Platform Fee
 
-# ASINs to Process
+#TODO ASINs to Process. This contains list of all SKU IDs within the parent.
 B07N316V8C = "Angry Orange Pet Odor Eliminator with Citrus Scent for Strong Dog or Cat Pee Smells on Carpet, Furniture & Indoor Outdoor Floors - 24 Fluid Ounces - Puppy Supplies"
 B001PU9A9Q = "Nippies Skin Reusable Covers - Sticky Adhesive Silicone Pasties - Reusable Skin Adhesive Covers for Women with Travel Box"
 # Dictionary of TTPID that should be processed
 ACTIVE_PRODUCT_LIST = {"1729385211989037378": B07N316V8C,
                        "1729386030694895938": B001PU9A9Q
                        } 
+#TODO Add for value a [list of SKU ID, Seller SKU]
 
 # ---------------------------- FINANCIAL METRICS --------------------------- #
 sales = None
@@ -203,7 +204,85 @@ def weekly_tasks(ttpid):
     Args:
         ttpid (string): the selected ttpid by user from the dropdown list
     """  
-    pass
+    try:
+        close_open_file(weekly_dashboard_path)  # Close dashboard if it's open
+        logger.info(f"Closed the dashboard file: {weekly_dashboard_path}")
+
+        create_backup(weekly_dashboard_path)    # Create backup of the current file
+        logger.info(f"Created backup for file: {weekly_dashboard_path}")
+
+        current_df = create_dataframe_from_sheet(ttpid)  # Create df for the sheet we will be working on
+        logger.info(f"Created dataframe for sheet: {ttpid}. Data shape: {current_df.shape}")
+
+        process_all_orders()    # Extract all the financial data from the All Orders report.
+        logger.info(f"Financial data extracted from all orders.")
+
+        open_file(weekly_dashboard_path)  # Open file after handling
+        logger.info(f"Opened the dashboard file: {weekly_dashboard_path}")
+    
+    except Exception as e:
+        logger.error(f"Error during weekly tasks for TTPID {ttpid}: {e}")
+        messagebox.showerror(title="Error", message=f"An error occurred during weekly tasks for TTPID {ttpid}: {e}")
+
+def create_dataframe_from_sheet(sheet_name):
+    """Create a dataframe from the specified sheet starting from cell A3.
+    
+    Args:
+        sheet_name (string): The name of the sheet to process.
+        
+    Returns:
+        pd.DataFrame: The resulting dataframe with proper headers.
+    """
+    try:
+        logger.info(f"Reading sheet: {sheet_name}")
+        
+        # Load the sheet into a dataframe, skipping the first two rows
+        df = pd.read_excel(weekly_dashboard_path, sheet_name=sheet_name, skiprows=1)
+        logger.info(f"Sheet {sheet_name} read successfully. Data shape: {df.shape}")
+
+        # Set the first column as headers
+        df.columns = df.iloc[0]
+        df = df[1:]  # Remove the header row from the data
+        logger.info(f"Headers set from the first column. Data shape after setting headers: {df.shape}")
+
+        return df.reset_index(drop=True)
+    except Exception as e:
+        logger.error(f"Error processing sheet {sheet_name}: {e}")
+        raise e
+
+def process_all_orders():
+    """Process the all_orders CSV file to extract financial metrics."""
+    try:
+        # Read the CSV file
+        all_orders_df = pd.read_csv(all_orders_path)
+        logger.info(f"Read all_orders file. Data shape: {all_orders_df.shape}")
+        
+        # Delete rows with "Canceled" in the "Order Status" column
+        all_orders_df = all_orders_df[all_orders_df["Order Status"] != "Canceled"]
+        logger.info(f"Filtered out 'Canceled' orders. Data shape: {all_orders_df.shape}")
+
+        # Calculate financial metrics
+        global sales, seller_discount, shipping_fee_income, shipping_fee_seller_discount
+        global shipping_fee_net_income, gross_revenue, returns, net_revenue
+        global product_sample_cogs, product_sample_shipping_cost, num_of_samples_sent_tts
+
+        sales = all_orders_df["SKU Subtotal Before Discount"].sum()
+        seller_discount = all_orders_df["SKU Seller Discount"].sum()
+        shipping_fee_income = all_orders_df["Original Shipping Fee"].sum()
+        shipping_fee_seller_discount = all_orders_df["Shipping Fee Seller Discount"].sum()
+        shipping_fee_net_income = shipping_fee_income - shipping_fee_seller_discount
+        gross_revenue = sales + shipping_fee_net_income - seller_discount
+        returns = all_orders_df["Order Refund Amount"].sum()
+        net_revenue = gross_revenue - returns
+        product_sample_cogs = all_orders_df[all_orders_df["SKU Unit Original Price"] == 0]["Quantity"].sum()
+        product_sample_shipping_cost = all_orders_df[all_orders_df["SKU Unit Original Price"] == 0]["Quantity"].sum()
+        num_of_samples_sent_tts = all_orders_df[all_orders_df["SKU Unit Original Price"] == 0]["Quantity"].sum()
+
+        logger.info("Financial metrics calculated successfully.")
+    except Exception as e:
+        logger.error(f"Error processing all_orders file: {e}")
+        messagebox.showerror(title="Error", message=f"An error occurred while processing the all_orders file: {e}")
+
 # ---------------------------- UI SETUP ------------------------------- #
 # Main window UI setup
 main_window = Tk()

@@ -151,6 +151,49 @@ ACTIVE_PRODUCT_LIST = {"1729385211989037378": B07N316V8C,
                        } 
 
 # ---------------------------- FINANCIAL METRICS --------------------------- #
+sales = None
+seller_discount = None
+shipping_fee_income = None
+shipping_fee_seller_discount = None
+shipping_fee_net_income = None
+gross_revenue = None
+returns = None
+net_revenue = None
+cogs = None
+shipping_cost = None
+total_cogs = None
+product_sample_cogs = None
+product_sample_shipping_cost = None
+affiliate_commission = None
+insense_joinbrands_flat_fee = None
+marketing_affiliate_total = None
+tiktok_ads = None
+total_marketing_expenses = None
+platform_fee = None
+net_income_cp = None
+net_margin = None
+asp_before_disc = None
+asp_after_disc = None
+total_units = None
+total_units_wow_percent = None
+ads_impressions = None
+video_views = None
+product_impressions = None
+product_clicks = None
+media_ctr = None
+media_cvr = None
+num_of_samples_sent_insense = None
+num_of_samples_sent_tts = None
+num_of_content_posted = None
+viral_video_greater_than_1mm_vv = None
+viral_video_link = None
+viral_video_performance = None
+best_video_views = None
+best_video_link = None
+best_video_performance = None
+lw_vv_avg = None
+event = None
+comment = None
 
 # ---------------------------- WEEKLY TASKS -------------------------------- #
 def weekly_tasks(ttpid):
@@ -160,7 +203,49 @@ def weekly_tasks(ttpid):
     Args:
         ttpid (string): the selected ttpid by user from the dropdown list
     """  
-    pass
+    try:
+        close_open_file(weekly_dashboard_path)  # Close dashboard if it's open
+        logger.info(f"Closed the dashboard file: {weekly_dashboard_path}")
+
+        create_backup(weekly_dashboard_path)    # Create backup of the current file
+        logger.info(f"Created backup for file: {weekly_dashboard_path}")
+
+        current_df = create_dataframe_from_sheet(ttpid)  # Create df for the sheet we will be working on
+        logger.info(f"Created dataframe for sheet: {ttpid}. Data shape: {current_df.shape}")
+
+        open_file(weekly_dashboard_path)  # Open file after handling
+        logger.info(f"Opened the dashboard file: {weekly_dashboard_path}")
+    
+    except Exception as e:
+        logger.error(f"Error during weekly tasks for TTPID {ttpid}: {e}")
+        messagebox.showerror(title="Error", message=f"An error occurred during weekly tasks for TTPID {ttpid}: {e}")
+
+def create_dataframe_from_sheet(sheet_name):
+    """Create a dataframe from the specified sheet starting from cell A3.
+    
+    Args:
+        sheet_name (string): The name of the sheet to process.
+        
+    Returns:
+        pd.DataFrame: The resulting dataframe with proper headers.
+    """
+    try:
+        logger.info(f"Reading sheet: {sheet_name}")
+        
+        # Load the sheet into a dataframe, skipping the first two rows
+        df = pd.read_excel(weekly_dashboard_path, sheet_name=sheet_name, skiprows=1)
+        logger.info(f"Sheet {sheet_name} read successfully. Data shape: {df.shape}")
+
+        # Set the first column as headers
+        df.columns = df.iloc[0]
+        df = df[1:]  # Remove the header row from the data
+        logger.info(f"Headers set from the first column. Data shape after setting headers: {df.shape}")
+
+        return df.reset_index(drop=True)
+    except Exception as e:
+        logger.error(f"Error processing sheet {sheet_name}: {e}")
+        raise e
+
 # ---------------------------- UI SETUP ------------------------------- #
 # Main window UI setup
 main_window = Tk()

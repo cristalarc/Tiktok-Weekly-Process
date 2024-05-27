@@ -31,3 +31,7 @@ HOW TO MAINTAIN:
 
 - Changing Platform Fee:
     + Adjust PLATFORM_FEE in the Constants section.
+
+- Adding new financial metris:
+    + Add new financial metrics constant for each new metric. Map it to the exact
+    name in the excel sheet.
