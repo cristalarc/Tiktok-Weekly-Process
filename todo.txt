@@ -1,4 +1,8 @@
 -- To Do--
+Add specific TTPID funcitionality to weekly processor
+Add COGS value to the samples financial metrics
+
+Add cases in which a file isn't found, should it proceed?
 
 The user will pick the ASIN from a dropdown list and run it.
     When the process is ran, the script will fetch all the values for LW financial metrics
@@ -9,17 +13,17 @@ The user will pick the ASIN from a dropdown list and run it.
 
 Identify if SKU ID is the best identifier accross all files
 Relative files paths need to be fetched from a dialog box OR the name needs to be dynamic.
+We'lll have to add something to improve the UI so that users dont select a TTPID but a name
 
 --Optimization--
-
+Make the Catalog section self suficient via import file instead of hard coded ASIN and SKUs
 
 --Bugs--
 
 
 --To Test--
-Test process all orders if it's working or not
 
 --Tested--
-
+Tested it filters out cancelled records from All Orders report.
 
 --Smashed Bugs--

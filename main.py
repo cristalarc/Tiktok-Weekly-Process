@@ -142,12 +142,15 @@ FONT_SIZE = 11
 WHITE = "#fcf7f9"
 PLATFORM_FEE = 0.06   # Tiktok's Platform Fee
 
-# ASINs to Process
-B07N316V8C = "Angry Orange Pet Odor Eliminator with Citrus Scent for Strong Dog or Cat Pee Smells on Carpet, Furniture & Indoor Outdoor Floors - 24 Fluid Ounces - Puppy Supplies"
-B001PU9A9Q = "Nippies Skin Reusable Covers - Sticky Adhesive Silicone Pasties - Reusable Skin Adhesive Covers for Women with Travel Box"
+# ---------------------------- CATALOG --------------------------------- #
+# Naming convention Parent ASIN_Parent TTSID
+B0CTMBJTCW_1729385211989037378 = ["Angry Orange Pet Odor Eliminator with Citrus Scent for Strong Dog or Cat Pee Smells on Carpet, Furniture & Indoor Outdoor Floors - 24 Fluid Ounces - Puppy Supplies", 1729385211989037378, [1729462219447243074, 1729485339627000130, 1729462219447308610], ["AOR-PET-PrMx-24", "AOR-PET-RTU24-2PK", "AOR-PET-PrMx-128-AB"]]
+B08D7M933F_1729386030694895938 = ["Nippies Skin Reusable Covers - Sticky Adhesive Silicone Pasties - Reusable Skin Adhesive Covers for Women with Travel Box", 1729386030694895938, [1729386030694961474,1729386030695289154,1729386030695027010,1729386030695354690,1729386030695092546,1729386031247233346,1729386030695158082,1729386031247298882,1729386030695223618,1729386031247364418], ["NN-Adhesive Silicone Nippies-Lt","NN-Adhesive Silicone Nippies-Lt-Sz2","NN-Adhesive Silicone Nippies-Md","NN-Adhesive Silicone Nippies-Md-Sz2","NN-Adhesive Silicone Nippies-Dk","NN-Adhesive Silicone Nippies-Dk-Sz2","BSX-SKADES1","BSX-SKADES2","BSX-SKADHZ1","BSX-SKADHZ2"]]
+
 # Dictionary of TTPID that should be processed
-ACTIVE_PRODUCT_LIST = {"1729385211989037378": B07N316V8C,
-                       "1729386030694895938": B001PU9A9Q
+ACTIVE_PRODUCT_LIST = {"AO_PB0CTMBJTCW": B0CTMBJTCW_1729385211989037378,
+                       "Nippies_PB08D7M933F": B08D7M933F_1729386030694895938,
+                       "Nippies_B001PU9A9Q": B08D7M933F_1729386030694895938
                        } 
 
 # ---------------------------- FINANCIAL METRICS --------------------------- #
@@ -213,7 +216,10 @@ def weekly_tasks(ttpid):
         current_df = create_dataframe_from_sheet(ttpid)  # Create df for the sheet we will be working on
         logger.info(f"Created dataframe for sheet: {ttpid}. Data shape: {current_df.shape}")
 
-        open_file(weekly_dashboard_path)  # Open file after handling
+        process_all_orders()    # Extract all the financial data from the All Orders report.
+        logger.info(f"Financial data extracted from all orders.")
+
+        # open_file(weekly_dashboard_path)  # Open file after handling FIXME Remove comment
         logger.info(f"Opened the dashboard file: {weekly_dashboard_path}")
     
     except Exception as e:
@@ -245,6 +251,40 @@ def create_dataframe_from_sheet(sheet_name):
     except Exception as e:
         logger.error(f"Error processing sheet {sheet_name}: {e}")
         raise e
+
+def process_all_orders():
+    """Process the all_orders CSV file to extract financial metrics."""
+    try:
+        # Read the CSV file
+        all_orders_df = pd.read_csv(all_orders_path)
+        logger.info(f"Read all_orders file. Data shape: {all_orders_df.shape}")
+        
+        # Delete rows with "Canceled" in the "Order Status" column
+        all_orders_df = all_orders_df[all_orders_df["Order Status"] != "Canceled"]
+        logger.info(f"Filtered out 'Canceled' orders. Data shape: {all_orders_df.shape}")
+
+        # Calculate financial metrics
+        global sales, seller_discount, shipping_fee_income, shipping_fee_seller_discount
+        global shipping_fee_net_income, gross_revenue, returns, net_revenue
+        global product_sample_cogs, product_sample_shipping_cost, num_of_samples_sent_tts
+
+        sales = all_orders_df["SKU Subtotal Before Discount"].sum()
+        seller_discount = all_orders_df["SKU Seller Discount"].sum()
+        shipping_fee_income = all_orders_df["Original Shipping Fee"].sum()
+        shipping_fee_seller_discount = all_orders_df["Shipping Fee Seller Discount"].sum()
+        shipping_fee_net_income = shipping_fee_income - shipping_fee_seller_discount
+        gross_revenue = sales + shipping_fee_net_income - seller_discount
+        returns = all_orders_df["Order Refund Amount"].sum()
+        net_revenue = gross_revenue - returns
+        product_sample_cogs = all_orders_df[all_orders_df["SKU Unit Original Price"] == 0]["Quantity"].sum()
+        product_sample_shipping_cost = all_orders_df[all_orders_df["SKU Unit Original Price"] == 0]["Quantity"].sum()
+        num_of_samples_sent_tts = all_orders_df[all_orders_df["SKU Unit Original Price"] == 0]["Quantity"].sum()
+
+        logger.info("Financial metrics from All Orders calculated successfully.")
+        print(sales, seller_discount, shipping_fee_income, num_of_samples_sent_tts, product_sample_cogs) #FIXME remove
+    except Exception as e:
+        logger.error(f"Error processing all_orders file: {e}")
+        messagebox.showerror(title="Error", message=f"An error occurred while processing the all_orders file: {e}")
 
 # ---------------------------- UI SETUP ------------------------------- #
 # Main window UI setup
